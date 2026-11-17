@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.lineagedq.spark</groupId>
+    <artifactId>lineage-dq</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+
+    <name>Lineage-driven Multi-Agent DQ Framework</name>
+    <description>
+        Phan Java cua framework Data Quality: DqGuard va 17 class quanh no. Khong biet gi ve
+        mot bang cu the - pipeline truyen dqKey/datasetName vao qua builder.
+        Phan Python (agents/) va image agent di kem trong cung thu muc nay.
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <scala.binary.version>2.13</scala.binary.version>
+        <spark.version>4.1.2</spark.version>
+        <iceberg.version>1.11.0</iceberg.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <!-- HANG RAO, KHONG PHAI TRANG TRI: source/target 17 van cho javac LINK vao API cua JDK
+             dang build (o day la 23), nen 'HttpClient.close()' hay try-with-resources tren
+             HttpClient - hai thu chi co tu JDK 21 - se BIEN DICH SACH roi nem NoSuchMethodError
+             khi chay tren JDK 17 cua image Spark. NoSuchMethodError la Error chu khong phai
+             Exception: DqCheckpoint va DqGuard deu chi 'catch (Exception)' nen no xuyen thang len
+             va GIET pipeline. 'release' ep javac chi thay API cua JDK 17. -->
+        <maven.compiler.release>17</maven.compiler.release>
+        <jackson.version>2.21.2</jackson.version>
+    </properties>
+
+    <!-- Tat ca deu provided: Spark runtime cap san. Nho vay artifact nay khong keo theo gi
+         vao fat jar cua pipeline - chi 18 class cua chinh no. -->
+    <dependencies>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-sql_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-hive_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.iceberg</groupId>
+            <artifactId>iceberg-spark-runtime-4.1_${scala.binary.version}</artifactId>
+            <version>${iceberg.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.36</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -1,0 +1,152 @@
+%% SINH TU DqTables.java - DUNG SUA TAY.
+%% Sinh lai: python3 scripts/gen_schema_docs.py --write
+erDiagram
+    dq_rules {
+        varchar generation_run_id PK
+        varchar dq_key
+        varchar dataset_name
+        varchar rule_id PK
+        varchar column_name
+        varchar description
+        varchar failed_sql_expr
+        integer importance_weight
+        boolean attached
+        boolean is_active
+        varchar created_at
+        varchar stage PK
+        varchar kind
+        varchar observed_expr
+        varchar expected
+        varchar observed_unit
+    }
+    dq_lineage_state {
+        varchar dq_key PK
+        varchar dataset_name
+        varchar lineage_hash
+        varchar generation_run_id
+        varchar updated_at
+    }
+    dq_report_history {
+        varchar run_id PK
+        varchar executed_at
+        varchar dq_key
+        varchar dataset_name
+        varchar status
+        double quality_score
+        bigint total_rows
+        varchar generation_run_id
+        varchar rule_id PK
+        varchar column_name
+        bigint importance_weight
+        bigint violation_count
+        double violation_pct
+        varchar stage PK
+        bigint rules_declared
+        bigint rules_attached
+        double quality_score_trusted
+        boolean suspect_always_violating
+        varchar kind
+        double observed_value
+        varchar expected
+        varchar observed_unit
+        boolean pct_derived_from_observed
+    }
+    dq_stage_manifest {
+        varchar run_id PK
+        varchar captured_at
+        varchar dq_key
+        varchar dataset_name
+        varchar stage PK
+        bigint stage_order
+        varchar column_name PK
+        varchar column_type
+        boolean is_duplicate_name
+        bigint row_count
+    }
+    dq_rule_verification {
+        varchar generation_run_id PK
+        varchar dq_key
+        varchar dataset_name
+        varchar verified_at
+        varchar overall_verdict
+        varchar stage PK
+        varchar stage_verdict
+        varchar notes
+    }
+    dq_analysis {
+        varchar analysis_id PK
+        varchar dq_key
+        varchar report_run_id
+        varchar analysis_type
+        varchar content
+        varchar saved_at
+    }
+    dq_agent_runs {
+        varchar run_id PK
+        varchar dq_key
+        varchar checkpoint PK
+        varchar action
+        varchar reason
+        varchar recorded_at
+        bigint num_tool_calls
+    }
+    dq_agent_tool_calls {
+        varchar run_id PK
+        varchar dq_key
+        varchar checkpoint PK
+        bigint sequence_no PK
+        varchar tool_name
+        varchar arguments_json
+        varchar result_json
+        boolean result_truncated
+    }
+    dq_agent_run_attempts {
+        varchar run_id PK
+        varchar dq_key
+        varchar checkpoint PK
+        bigint attempt_no PK
+        varchar kind
+        boolean ok
+        varchar status
+        varchar summary
+        bigint regen_count
+        bigint rules_generated_count
+        varchar created_at
+    }
+    dq_lineage_runs {
+        varchar run_id PK
+        varchar ol_run_id PK
+        varchar job_namespace
+        varchar job_name
+        varchar event_type PK
+        varchar event_time
+        varchar dq_key
+        varchar input_datasets
+        varchar output_datasets
+        varchar raw_event_json
+        varchar captured_at
+    }
+    dq_column_lineage {
+        varchar run_id PK
+        varchar dq_key
+        varchar scope
+        varchar output_namespace
+        varchar output_dataset
+        varchar output_field PK
+        varchar input_namespace
+        varchar input_dataset
+        varchar input_field PK
+        varchar transformation_type
+        varchar transformation_subtype
+        varchar transformation_description
+        boolean masking
+        varchar captured_at
+    }
+    dq_rules ||--o{ dq_report_history : "generation_run_id+rule_id"
+    dq_rules ||--o{ dq_rule_verification : "generation_run_id"
+    dq_rules ||--|| dq_lineage_state : "generation_run_id"
+    dq_stage_manifest ||--o{ dq_report_history : "run_id+stage"
+    dq_lineage_runs ||--o{ dq_column_lineage : "run_id"
+    dq_report_history ||--o{ dq_analysis : "report_run_id"
+    dq_agent_runs ||--o{ dq_agent_tool_calls : "run_id+checkpoint"
+    dq_agent_runs ||--o{ dq_agent_run_attempts : "run_id+checkpoint"

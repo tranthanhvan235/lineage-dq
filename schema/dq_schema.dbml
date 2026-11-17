@@ -1,0 +1,223 @@
+// SINH TU src/main/java/org/lineagedq/spark/dq/DqTables.java - DUNG SUA TAY.
+// Sinh lai: python3 scripts/gen_schema_docs.py --write
+//
+// Dan toan bo file nay vao https://dbdiagram.io/d de xem so do.
+// Iceberg KHONG co khoa ngoai; cac Ref duoi day la quy uoc noi bang khi truy van.
+// dq_key co mat o ca 11 bang - do la truc phan vung theo pipeline, khong ve thanh duong quan he vi se che mat cac quan he that.
+
+Table dq_rules {
+  generation_run_id varchar [pk]
+  dq_key varchar
+  dataset_name varchar
+  rule_id varchar [pk]
+  column_name varchar
+  description varchar
+  failed_sql_expr varchar
+  importance_weight integer
+  attached boolean
+  is_active boolean
+  created_at varchar
+  stage varchar [pk]
+  kind varchar
+  observed_expr varchar
+  expected varchar
+  observed_unit varchar
+
+  Note: '''
+  1 dong / rule / luot sinh
+  khoa nghiep vu: generation_run_id, stage, rule_id
+  '''
+}
+
+Table dq_lineage_state {
+  dq_key varchar [pk]
+  dataset_name varchar
+  lineage_hash varchar
+  generation_run_id varchar
+  updated_at varchar
+
+  Note: '''
+  1 dong / dq_key - rule hien tai ung voi lineage nao
+  khoa nghiep vu: dq_key
+  '''
+}
+
+Table dq_report_history {
+  run_id varchar [pk]
+  executed_at varchar
+  dq_key varchar
+  dataset_name varchar
+  status varchar
+  quality_score double
+  total_rows bigint
+  generation_run_id varchar
+  rule_id varchar [pk]
+  column_name varchar
+  importance_weight bigint
+  violation_count bigint
+  violation_pct double
+  stage varchar [pk]
+  rules_declared bigint
+  rules_attached bigint
+  quality_score_trusted double
+  suspect_always_violating boolean
+  kind varchar
+  observed_value double
+  expected varchar
+  observed_unit varchar
+  pct_derived_from_observed boolean
+
+  Note: '''
+  1 dong / rule / stage / lan chay
+  khoa nghiep vu: run_id, stage, rule_id
+  '''
+}
+
+Table dq_stage_manifest {
+  run_id varchar [pk]
+  captured_at varchar
+  dq_key varchar
+  dataset_name varchar
+  stage varchar [pk]
+  stage_order bigint
+  column_name varchar [pk]
+  column_type varchar
+  is_duplicate_name boolean
+  row_count bigint
+
+  Note: '''
+  1 dong / cot / stage / lan chay
+  khoa nghiep vu: run_id, stage, column_name
+  '''
+}
+
+Table dq_rule_verification {
+  generation_run_id varchar [pk]
+  dq_key varchar
+  dataset_name varchar
+  verified_at varchar
+  overall_verdict varchar
+  stage varchar [pk]
+  stage_verdict varchar
+  notes varchar
+
+  Note: '''
+  1 dong / stage / luot sinh
+  khoa nghiep vu: generation_run_id, stage
+  '''
+}
+
+Table dq_analysis {
+  analysis_id varchar [pk]
+  dq_key varchar
+  report_run_id varchar
+  analysis_type varchar
+  content varchar
+  saved_at varchar
+
+  Note: '''
+  1 dong / ban phan tich
+  khoa nghiep vu: analysis_id
+  '''
+}
+
+Table dq_agent_runs {
+  run_id varchar [pk]
+  dq_key varchar
+  checkpoint varchar [pk]
+  action varchar
+  reason varchar
+  recorded_at varchar
+  num_tool_calls bigint
+
+  Note: '''
+  1 dong / checkpoint / lan chay
+  khoa nghiep vu: run_id, checkpoint
+  '''
+}
+
+Table dq_agent_tool_calls {
+  run_id varchar [pk]
+  dq_key varchar
+  checkpoint varchar [pk]
+  sequence_no bigint [pk]
+  tool_name varchar
+  arguments_json varchar
+  result_json varchar
+  result_truncated boolean
+
+  Note: '''
+  1 dong / lan goi tool
+  khoa nghiep vu: run_id, checkpoint, sequence_no
+  '''
+}
+
+Table dq_agent_run_attempts {
+  run_id varchar [pk]
+  dq_key varchar
+  checkpoint varchar [pk]
+  attempt_no bigint [pk]
+  kind varchar
+  ok boolean
+  status varchar
+  summary varchar
+  regen_count bigint
+  rules_generated_count bigint
+  created_at varchar
+
+  Note: '''
+  1 dong / luot sinh lai rule
+  khoa nghiep vu: run_id, checkpoint, attempt_no
+  '''
+}
+
+Table dq_lineage_runs {
+  run_id varchar [pk]
+  ol_run_id varchar [pk]
+  job_namespace varchar
+  job_name varchar
+  event_type varchar [pk]
+  event_time varchar
+  dq_key varchar
+  input_datasets varchar
+  output_datasets varchar
+  raw_event_json varchar
+  captured_at varchar
+
+  Note: '''
+  1 dong / su kien OpenLineage
+  khoa nghiep vu: run_id, ol_run_id, event_type
+  '''
+}
+
+Table dq_column_lineage {
+  run_id varchar [pk]
+  dq_key varchar
+  scope varchar
+  output_namespace varchar
+  output_dataset varchar
+  output_field varchar [pk]
+  input_namespace varchar
+  input_dataset varchar
+  input_field varchar [pk]
+  transformation_type varchar
+  transformation_subtype varchar
+  transformation_description varchar
+  masking boolean
+  captured_at varchar
+
+  Note: '''
+  1 dong / canh (cot dich, cot nguon)
+  khoa nghiep vu: run_id, output_field, input_field
+  '''
+}
+
+// ── Quan he logic ────────────────────────────────────────────
+Ref: dq_report_history.(generation_run_id, rule_id) > dq_rules.(generation_run_id, rule_id)  // 3792/3792 noi duoc
+Ref: dq_rule_verification.generation_run_id > dq_rules.generation_run_id  // 27/27 noi duoc
+Ref: dq_lineage_state.generation_run_id - dq_rules.generation_run_id  // mot dong moi dq_key: bo rule dang active ung voi lineage_hash nao
+Ref: dq_report_history.(run_id, stage) > dq_stage_manifest.(run_id, stage)  // chi noi duoc voi lan chay dung mo hinh per-stage; 39/49 lan chay cu co stage NULL
+Ref: dq_column_lineage.run_id > dq_lineage_runs.run_id  // 53/53 noi duoc
+Ref: dq_analysis.report_run_id > dq_report_history.run_id  // 8/8 noi duoc; can DISTINCT run_id ben cha
+Ref: dq_agent_tool_calls.(run_id, checkpoint) > dq_agent_runs.(run_id, checkpoint)  // 255/255 noi duoc
+Ref: dq_agent_run_attempts.(run_id, checkpoint) > dq_agent_runs.(run_id, checkpoint)  // mot luot chay co nhieu lan sinh lai
